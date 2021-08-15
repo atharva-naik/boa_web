@@ -8,12 +8,23 @@ class CustomButton(bwx.ButtonWidget):
           super(CustomButton, self).__init__(parent=parent, text=text, **attrs)
           self.ctr = 0
 
-     def click_callback(self):
+     def onclick(self):
           self.ctr += 1
-          if self.ctr%2 ==0:
-               self.setStyle(background_color='red')
-          else:
-               self.setStyle(background_color='green')
+          if self.ctr%2 == 0: self.setStyle(background_color='red')
+          else: self.setStyle(background_color='green')
+
+
+class CustomImage(bwx.BImage):
+     def __init__(self, source, parent=None, **kwargs):
+          super(CustomImage, self).__init__(source=source, parent=parent, **kwargs)
+          self.bind('mouseenter', self.onmouseenter)
+          self.bind('mouseleave', self.onmouseleave)
+
+     def onmouseenter(self):
+          print("cursor entered the image")
+
+     def onmouseleave(self):
+          print("cursor exited the image")
 
 if __name__ == '__main__':
      import time
@@ -25,7 +36,14 @@ if __name__ == '__main__':
           print("button was clicked")
      button = CustomButton(label1, text="click me!")
      button.pack(align=bwx.LEFT)
-     button.bind("click", button.click_callback)
+     button.bind("click", button.onclick)
+     img = CustomImage(source="logo.png", 
+                       parent=frame, 
+                       alt="boa image", 
+                       height="100px", 
+                       width="100px", 
+                       title="this is an image")
+     img.pack(align=bwx.CENTER)
 #     label_inside_button = bwx.LabelWidget(button, text="innerHTML inside button div")
 #     label_inside_button.pack()
      label2 = bwx.LabelWidget(frame, text="this is the second one")
