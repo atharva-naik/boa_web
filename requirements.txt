@@ -1,0 +1,5 @@
+bs4
+flask
+jinja2
+ansicolors
+cefpython3
