@@ -17,8 +17,9 @@ class Widget:
         self._secret = rand_str()
         self.innerText = "" # innerText attribute of Node/Widget
         self.innerHTML = "" # innerHtml attribute of Node/Widget (including html of child)
-        self.text = text
         self.type = ""
+        self.text = text
+        self.cage = None
         self.tag = Widget2Tag.get(self.type, "span")
         self.soup = bs4.BeautifulSoup(self.innerHTML, features="html.parser")
         for attr,value in attrs.items():
@@ -31,6 +32,20 @@ class Widget:
         if parent is not None:
             self.parent.children.append(self) # add current widget as a child for the parent.
         self._bindings = []
+
+    def encage(self, cage):
+        '''
+        Link a reference to the BoaCage instance for the widget and all of it's children
+        '''
+        self.cage = cage
+        for child in self.children:
+            child.encage(cage)
+
+    def setStyle(self, **attrs):
+        jscode = f'''element = document.getElementById("{self._secret}");\n'''
+        for attr, value in attrs.items():
+            jscode += f'''element.setAttribute("style", "{attr.replace('_','-')}: {value};");\n'''
+        if self.cage: self.cage.execJS(jscode)
 
     def _compile(self, **attrs):
         attr_str = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()]) 
@@ -74,11 +89,12 @@ class Widget:
     def bind(self, event, callback):
         # print(event, callback)
         callback_name = f"{event}_{self._secret}"
+        # setattr(self, callback_name, callback)
         js_callback = "function () {"+f"window.{callback_name}();"+"}"
         binding = f'''document.getElementById("{self._secret}").addEventListener('{event}', {js_callback} )
 console.log('{callback_name} bound to {event} event of id={self._secret}');'''
         self._bindings.append({"name" : callback_name,
-                               "callback": callback,
+                               "callback": callback,# getattr(self, callback_name),
                                "jscode" : binding})
 
     def _get_bindings(self):

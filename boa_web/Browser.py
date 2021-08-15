@@ -48,6 +48,7 @@ class Page:
 
     def attach(self, cage):
         import os, colors 
+        self.root.encage(cage)
         for binding in self.root._get_bindings():
             # print("—"*os.get_terminal_size().columns)
             # print(binding)
