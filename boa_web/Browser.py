@@ -34,15 +34,41 @@ HTMLBoilerPlate = '''<!DOCTYPE html>
 
 class Page:
     def __init__(self, root, **args):
+        import os
         from jinja2 import Template
         self.template = Template(HTMLBoilerPlate)
         self.html = self.template
         self.args = args
         self.root = root
+        self.css_sources = []
+        self.script_sources = []
+        os.makedirs("static", exist_ok=True)
+        os.makedirs("templates", exist_ok=True)
+
+    def add_stylesheet(self, path=None, url=None):
+        import os
+        if path:
+            static_url = "{{ "+f"url_for('static', '{path}')"+" }}"
+            self.css_sources.append(f'''<link rel="stylesheet" href="{static_url}">''')
+        else:
+            if url: self.css_sources.append(f'''<link rel="stylesheet" href="{url}">''')
+
+    def add_script(self, path=None, url=None):
+        import os
+        if path:
+            static_url = "{{ "+f"url_for('static', '{path}')"+" }}"
+            self.script_sources.append(f'''<script src="{static_url}"></script>''')
+        else:
+            if url: self.script_sources.append(f'''<script src="{url}"></script>''')
 
     def build(self):
         body = str(self.root)
-        self.html = self.template.render(body=body, **self.args)
+        css_sources = "\n".join(self.css_sources)
+        script_sources = "\n".join(self.script_sources)
+        self.html = self.template.render(body=body, 
+                                         css_sources=css_sources, 
+                                         script_sources=script_sources,
+                                         **self.args)
         # print(body)
         return self.html
 

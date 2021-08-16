@@ -13,7 +13,10 @@ CENTER = "center"
 RIGHT = "right"
 
 class BImage:
-    '''Class to represent the image tag'''
+    '''
+    Class to represent the image tag. 
+    This widget can display both images and gifs.
+    '''
     def __init__(self, source, parent=None, **attrs):
         '''source url of the image is needed'''
         self.cage = None
@@ -26,6 +29,7 @@ class BImage:
         self.attrs = attrs # dictionary of attributes.
         self.parent = parent
         self.is_packed = False
+        self.tab_level = "\t"
         self.align = LEFT
         if parent is not None: self.parent.children.append(self) # add current widget as a child for the parent.
         self._bindings = []
@@ -45,14 +49,22 @@ class BImage:
 
     def setStyle(self, **attrs):
         jscode = f'''element = document.getElementById("{self._secret}");\n'''
+        style_str = ""
         for attr, value in attrs.items():
-            jscode += f'''element.setAttribute("style", "{attr.replace('_','-')}: {value};");\n'''
+            style_str += f"{attr.replace('_','-')}: {value};"
+        jscode += f'''element.setAttribute("style", "{style_str}");\n'''
+        # print(jscode)
         if self.cage: self.cage.execJS(jscode)
+
+    def setAttr(self, attr, value):
+        jscode = f'''element = document.getElementById("{self._secret}");\n'''
+        jscode += f'''element.setAttribute("{attr.replace('-','_')}", "{value}");\n'''
+        if self.cage: self.cage.execJS(jscode)       
 
     def _compile(self, src, **attrs):
         attr_str = " ".join([f"{attr}='{value}'" for attr,value in self.attrs.items()]) 
         # return f'''\n<{self.tag} src='''+'''{{'''+f''' url_for('static', filename='{src}') '''+'''}}'''+f''' {attr_str}>\n'''
-        return f'''\n<{self.tag} src="{self.source}" {attr_str}>\n'''
+        return f'''<{self.tag} src="{self.source}" {attr_str}>'''
 
     def __str__(self):
         '''get the html of current widget including all children'''
@@ -101,6 +113,7 @@ class Widget:
         self.attrs = attrs # dictionary of attributes.
         self.parent = parent
         self.children = []
+        self.tab_level = "\t"
         self.is_packed = False
         self.align = LEFT
         if parent is not None:
@@ -112,25 +125,42 @@ class Widget:
         Link a reference to the BoaCage instance for the widget and all of it's children
         '''
         self.cage = cage
-        for child in self.children:
-            child.encage(cage)
+        for child in self.children: child.encage(cage)
+
+    def setAttr(self, attr, value):
+        jscode = f'''element = document.getElementById("{self._secret}");\n'''
+        jscode += f'''element.setAttribute("{attr.replace('-','_')}", "{value}");\n'''
+        if self.cage: self.cage.execJS(jscode)        
 
     def setStyle(self, **attrs):
         jscode = f'''element = document.getElementById("{self._secret}");\n'''
+        style_str = ""
         for attr, value in attrs.items():
-            jscode += f'''element.setAttribute("style", "{attr.replace('_','-')}: {value};");\n'''
+            style_str += f"{attr.replace('_','-')}: {value};"
+        jscode += f'''element.setAttribute("style", "{style_str}");\n'''
+        # print(jscode)
         if self.cage: self.cage.execJS(jscode)
 
     def _compile(self, **attrs):
         attr_str = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()]) 
-        return f"<{self.tag} {attr_str}>{self.text}\n{self.innerHTML}</{self.tag}>"
+        return f'''
+<{self.tag} {attr_str}>
+    {self.text}
+    {self.innerHTML}
+</{self.tag}>
+'''
 
     def __str__(self):
         '''get the html of current widget including all children'''
         children_html = []
         for child in self.children:
-            if child.is_packed: 
-                children_html.append(f'''<div style="text-align: {child.align}">{str(child)}</div>''')
+            if child.is_packed:
+                # child.tab_level += "\t" 
+                children_html.append(f'''                
+<div style="text-align: {child.align}">
+    {str(child)}
+</div>
+''')
         self.innerHTML = "\n".join(children_html)
         self.soup = bs4.BeautifulSoup(self.innerHTML, features="html.parser")
         self.innerHTML = str(self.soup)
@@ -150,7 +180,7 @@ class Widget:
     def setHTML(self, html):
         self.innerHTML = html
         self.soup = bs4.BeautifulSoup(self.innerHTML, features="html.parser")
-        self.innerHTML = str(self.soup)
+        # self.innerHTML = str(self.soup)
         self.innerText = self.soup.text
 
     def setText(self, text):
@@ -158,7 +188,7 @@ class Widget:
         self.innerHTML = text
         self.innerText = text
         self.soup = bs4.BeautifulSoup(self.innerHTML, features="html.parser")
-        self.innerHTML = str(self.soup)
+        # self.innerHTML = str(self.soup)
 
     def bind(self, event, callback):
         # print(event, callback)
@@ -195,7 +225,47 @@ class ButtonWidget(Widget):
 
     def _compile(self, **attrs):
         attr_str = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()]) 
-        return f"<{self.tag} {attr_str}>{self.text}</{self.tag}>\n{self.innerHTML}"        
+        return f'''
+<{self.tag} {attr_str}>
+    {self.text}
+</{self.tag}>
+{self.innerHTML}'''
+
+
+class VideoWidget(Widget):
+    def __init__(self, source, parent=None, controls=True, **attrs):
+        super(VideoWidget, self).__init__(parent, **attrs)
+        self.type = "Video"
+        self.controls = controls
+        self.source = self.loadStatic(source)
+        self.fromat = "mp4"
+        self.tag = Widget2Tag.get(self.type, "span")
+
+    def _compile(self, **attrs):
+        attr_str = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()])
+        controls = 'controls' if self.controls else '' 
+        return f'''
+<video id={self._secret} src="{self.source}" type="video/{self.format}" {attr_str} {controls}>
+</video>
+'''
+
+    def loadStatic(self, path):
+        import os, shutil, pathlib
+        filename = pathlib.Path(path).name
+        self.format = path.split(".")[-1]
+        os.makedirs("static", exist_ok=True)
+        filepath = os.path.join("./static", filename)
+        shutil.copyfile(path, filepath)
+        
+        return filepath
+
+    def __str__(self):
+        # self.soup = bs4.BeautifulSoup(self.innerHTML, features="html.parser")
+        # self.innerHTML = str(self.soup)
+        # self.innerText = self.soup.text
+        attrs = self.attrs
+        # attrs["id"] = self._secret
+        return self._compile(**attrs)
 
 
 if __name__ == "__main__":
