@@ -6,7 +6,7 @@ from boa_web.Browser import BoaCage, Page
 
 
 class CustomButton(bwx.ButtonWidget):
-     def __init__(self, parent, text="", **attrs):
+     def __init__(self, parent=None, text="", **attrs):
           super(CustomButton, self).__init__(parent=parent, text=text, **attrs)
           self.ctr = 0
 
@@ -14,7 +14,15 @@ class CustomButton(bwx.ButtonWidget):
           self.ctr += 1
           if self.ctr%2 == 0: self.setStyle(background_color='red')
           else: self.setStyle(background_color='green')
+class CustomProgressbar(bwx.ProgressbarWidget):
+     def __init__(self, start=0, total=100, parent=None, **attrs):
+          super(CustomProgressbar, self).__init__(start=start, total=total, parent=parent, **attrs)
 
+     def tick(self, step):
+          import time, colors
+          #print(time.time())
+          print(colors.color(f"callback called at {time.time()}", fg="yellow"))
+          self.update(step)
 
 class CustomImage(bwx.BImage):
      def __init__(self, source, parent=None, **kwargs):
@@ -37,7 +45,10 @@ if __name__ == '__main__':
      frame = bwx.LabelWidget(text="")
      label1 = bwx.LabelWidget(frame, text="this is the first one")
      label1.pack(align=bwx.LEFT)
-     
+     pbar = CustomProgressbar(20, 100, frame) # start with 20 on a progress bar that goes up to 100.
+     pbar.pack()
+     pbar.after(pbar.tick, T=1, step=2) # every 5 ms update progressbar by 2%
+
      button = CustomButton(label1, text="click me!")
      button.pack(align=bwx.LEFT)
      button.bind("click", button.onclick)
@@ -51,13 +62,14 @@ if __name__ == '__main__':
      label2.pack(align=bwx.RIGHT)
      label3 = bwx.LabelWidget(frame, text="this is the third one")
      label3.pack(align=bwx.CENTER)
-     
      page = Page(root=frame, title="My first app", footer="This is a footer", header="This is a header")
+     # page.require(js.require)
+     # page.require(js.quill)
      page.add_stylesheet(url="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
      page.add_script(url="https://code.jquery.com/jquery-3.2.1.slim.min.js")
      page.build()
      page.save("templates/index.html")
-     boa = BoaCage(__name__, port=5000, scale=1.5, rotation=0, title="boa: Hello World")
+     boa = BoaCage(__name__, port=5000, scale=1, rotation=0, title="boa: Hello World")
      boa.run()
      page.attach(boa)
      # boa.setZoomFactor(scale=5)

@@ -1,5 +1,19 @@
 # minfied require.js
-require = '''
+class RequireJSPlugin:
+    def save(self, path):
+        import os
+        if not os.path.exists(path): open(path, "w").write(self._code)
+
+    def __str__(self):
+        static_url = "{{ "+f"url_for('static', '{self.name}')"+" }}"
+        return f'''<script src="{static_url}"></script>'''
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __init__(self):
+        self.name = "require.js"
+        self._code = '''
 /** vim: et:ts=4:sw=4:sts=4
  * @license RequireJS 2.3.6 Copyright jQuery Foundation and other contributors.
  * Released under MIT license, https://github.com/requirejs/requirejs/blob/master/LICENSE

@@ -72,6 +72,10 @@ class Page:
         # print(body)
         return self.html
 
+    def require(self, plugin):
+        plugin.save(path=f"static/{plugin.name}")
+        self.add_script(str(plugin))
+
     def attach(self, cage):
         import os, colors 
         self.root.encage(cage)

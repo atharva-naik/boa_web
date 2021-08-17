@@ -1,7 +1,10 @@
 bs4
 tqdm
+emoji
 flask
 jinja2
+psutil
 requests
 ansicolors
 cefpython3
+python-dotenv

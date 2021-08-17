@@ -1,25 +1,35 @@
-1. VideoWidget (with video.js)
+1. VideoWidget (with video.js, also allow subtitles)
 2. PdfWidget (with pdf.js)
 3. Audio API and visualizers
 4. SearchWidget
 5. NavbarWidget
 6. StatusbarWidget
 7. Notifications API (desktop and in-app)
-8. TextEditWidget
+8. TextEditWidget (with line numbers)
 9. OverviewWidget
 10. CalendarWidget
-11. ProgressbarWidget
-12. CanvasWidget (doodling, drawing etc.)
-13. GoogleDoodle
-14. GraphWidget
-15. ExcelWidget.
-16. Highlight API (span highlight, underline, python code highlight etc.)
-17. RichTextWidget
-18. PostWidget
-19. CommentWidget
-20. Layouts (horizontal, veritcal)
-21. ChatLayouts
-22. jquery python API
-23. brython API 
-24. Bootstrap API
-25. sqlite3 integration
+11. NewsWidget
+12. WeatherWidget
+13. ProgressbarWidget
+14. CanvasWidget (doodling, drawing etc.)
+15. GoogleDoodle
+16. GraphWidget
+17. ExcelWidget
+18. PowerPointWidget
+19. LatexWiget
+20. ListWidget
+21. Highlight API (span highlight, underline, python code highlight etc.)
+22. RichTextWidget
+23. PostWidget
+24. CommentWidget
+25. SliderWidget
+26. DialWidget
+27. PopupWidget
+28. Layouts (horizontal, veritcal)
+29. ChatLayouts
+30. jquery python API
+31. brython API 
+32. Bootstrap API
+33. sqlite3 integration
+34. manager API
+35. readthedocs API

@@ -7,7 +7,8 @@ except ImportError: from ._utils import *
 Widget2Tag = {"Label":"p", 
               "Button":"button",
               "Video":"video",
-              "Image":"img",}
+              "Image":"img",
+              "Bar":"progress"}
 LEFT = "left"
 CENTER = "center"
 RIGHT = "right"
@@ -119,6 +120,28 @@ class Widget:
         if parent is not None:
             self.parent.children.append(self) # add current widget as a child for the parent.
         self._bindings = []
+
+    def after(self, callback, T=1, repeat=True, **callback_args):
+        '''
+        this callback is bound on the Python side.
+        if repeat == True: the callback is called every x secs
+        else: the callback is called only once
+        time is in milliseconds
+        '''
+        import sched, time
+        scheduled = sched.scheduler(time.time, time.sleep)
+        if repeat: scheduled.enter(T, 1, self._after, kwargs={"curr_T":T,
+        "step_T":T, "callback":callback, "callback_args":callback_args})
+        else: scheduled.enter(T, 1, callback, kwargs=callback_args)
+        
+        scheduled.run(blocking=False)
+
+    def _after(self, curr_T, step_T, callback, callback_args):
+        import time, sched
+        callback(**callback_args)
+        scheduled = sched.scheduler(time.time, time.sleep)
+        scheduled.enter(curr_T+step_T, 1, self._after, kwargs={"curr_T":curr_T+step_T, "step_T":step_T, "callback":callback, "callback_args":callback_args})
+        scheduled.run(blocking=False)
 
     def encage(self, cage):
         '''
@@ -267,6 +290,27 @@ class VideoWidget(Widget):
         # attrs["id"] = self._secret
         return self._compile(**attrs)
 
+
+class ProgressbarWidget(Widget):
+    def __init__(self, start=0, total=100, parent=None, **attrs):
+        super(ProgressbarWidget, self).__init__(parent, **attrs)
+        self.type = "Bar"
+        self.total = total
+        self.tag = Widget2Tag.get(self.type, "span")
+        self.current_progress = start
+
+    def update(self, step=1):
+        self.current_progress += step 
+        self.setAttr(attr="value", value=self.current_progress)
+
+    def _compile(self, **attrs):
+        attr_str = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()]) 
+        return f'''
+<progress id={self._secret} value="{self.current_progress}" max="{self.total}" {attrs}></progress>'''
+
+    def __str__(self):
+        attrs = self.attrs
+        return self._compile(**attrs)
 
 if __name__ == "__main__":
     LabelWidget(text="This is a label")
