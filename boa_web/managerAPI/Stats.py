@@ -43,9 +43,9 @@ class PerformanceTracker:
         self.loggerThread.start()
 
     def _log(self):
-        self.log()
-        time.sleep(self.freq)
-        self._log()
+        while True:
+            self.log()
+            time.sleep(self.freq)
 
     def _str(self, sep=", ", **kwargs):
         return sep.join(f"{k}={v}" for k,v in kwargs.items())

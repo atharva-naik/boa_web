@@ -16,6 +16,7 @@ HTMLBoilerPlate = '''<!DOCTYPE html>
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        {{ script_sources }}
         {{ css_sources }}
         <title>{{ title }}</title>
     </head>
@@ -27,21 +28,19 @@ HTMLBoilerPlate = '''<!DOCTYPE html>
         <footer>
             {{ footer }}
         </footer>
-        {{ script_sources }}
     </body>
 </html>'''
 
 
 class Page:
     def __init__(self, root, **args):
-        import os
-        from jinja2 import Template
-        self.template = Template(HTMLBoilerPlate)
-        self.html = self.template
+        import os, jinja2
+        self.template = jinja2.Template(HTMLBoilerPlate)
         self.args = args
         self.root = root
         self.css_sources = []
         self.script_sources = []
+        self.html = self.template
         os.makedirs("static", exist_ok=True)
         os.makedirs("templates", exist_ok=True)
 
@@ -56,7 +55,7 @@ class Page:
     def add_script(self, path=None, url=None):
         import os
         if path:
-            static_url = "{{ "+f"url_for('static', '{path}')"+" }}"
+            static_url = "{{ "+f"url_for('static', filename='{path}')"+" }}"
             self.script_sources.append(f'''<script src="{static_url}"></script>''')
         else:
             if url: self.script_sources.append(f'''<script src="{url}"></script>''')
@@ -65,17 +64,23 @@ class Page:
         body = str(self.root)
         css_sources = "\n".join(self.css_sources)
         script_sources = "\n".join(self.script_sources)
+        requirements = self.root._get_requires()
+        print(requirements)
         self.html = self.template.render(body=body, 
                                          css_sources=css_sources, 
                                          script_sources=script_sources,
                                          **self.args)
         # print(body)
         return self.html
-
-    def require(self, plugin):
-        plugin.save(path=f"static/{plugin.name}")
-        self.add_script(str(plugin))
-
+    # def require(self, plugin):
+    #     import pathlib
+    #     if plugin.use_cdn:
+    #         for url in plugin.cdn_min_urls:
+    #             self.add_script(url=url)
+    #     else: 
+    #         for _,file in plugin.file_map.items(): 
+    #             if not file.endswith(".min.js"): 
+    #                 self.add_script(path=pathlib.Path(file).name)
     def attach(self, cage):
         import os, colors 
         self.root.encage(cage)
@@ -88,6 +93,7 @@ class Page:
 
     def save(self, path):
         open(path, "w").write(self.html)
+
 
 class LoadHandler:
     def __init__(self, cage, scale=1, rotation=0):
@@ -116,23 +122,14 @@ class LoadHandler:
     #     '''Can update url bar if it exists'''
     #     if self.browser:
     #         self.browser_frame.master.navigation_bar.set_url(browser.GetUrl())
-# class ExecJSHandler:
-#     def __init__(self, jscode):
-#         self.jscode = jscode
-
-#     def OnLoadingStateChange(self, browser, is_loading, **_):
-#         if not is_loading:
-#             browser.ExecuteJavascript(self.jscode)
 class BoaCage:
-    '''
-    The class for the browser object
-    '''
+    ''' The class for the browser object '''
     def __init__(self, name, **kwargs):
         check_versions(cef)
         self.cef = cef
         sys.excepthook = self.cef.ExceptHook
         directory = os.path.realpath(name)
-        print(name, directory)
+        # print(name, directory)
         # init_dirs(directory) # create the templates and static directory at the correct spot.
         self.app = Flask(name)
         self.scale = kwargs.get("scale", 1)
@@ -141,7 +138,6 @@ class BoaCage:
         self.port = kwargs.get("port", DEFAULT_PORT)
         self.title = kwargs.get("title", DEFAULT_TITLE)
         self.dom_loaded = False
-        print(self.cef.WindowInfo())
 
     def _start(self):
         self.cef.Initialize()
@@ -179,9 +175,7 @@ class BoaCage:
             except: pass
 
     def setZoomFactor(self, scale=1):
-        '''
-        Set the zoom in the browser window.
-        '''
+        '''Set the zoom in the browser window.'''
         self.scale = scale
         percent_scale = self.scale*100
         self.browser.ExecuteJavascript(f"document.body.style.zoom = '{percent_scale}%'")
@@ -197,17 +191,17 @@ class BoaCage:
         while True:
             if self.dom_loaded: break
         # print("dom_loaded=", self.dom_loaded)
+        # try: 
         self.browser.ExecuteJavascript(jscode)
-
+        # except RecursionError: print(jscode)
     def setTitle(self, title):
         '''need tp use SetTitle for windows.'''
         import platform
         self.browser.SetTitle(title)
 
     def setIcon(self, icon=None):
+        import colors
         if icon is None: icon = self.icon
-        windowId = self.browser.GetWindowHandle()
-        print(windowId)
 
     def getZoomFactor(self):
         return self.scale
@@ -238,6 +232,7 @@ class BoaCage:
         self.appThread = threading.Thread(target=self._run)
         self.appThread.start()
         self.setUrl(f"http://127.0.0.1:{self.port}/")
+
 
 class TestBrowser:
     def __init__(self, browser, interval=1):

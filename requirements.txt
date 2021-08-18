@@ -4,6 +4,7 @@ emoji
 flask
 jinja2
 gputil
+pillow
 psutil
 requests
 ansicolors
