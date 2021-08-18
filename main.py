@@ -2,7 +2,8 @@
 import boa_web.js as js
 import boa_web.css as css
 import boa_web.Widgets as bwx
-from boa_web.Browser import BoaCage, Page
+import boa_web.Browser as boa
+import boa_web.managerAPI.Stats as stats
 
 
 class CustomButton(bwx.ButtonWidget):
@@ -62,16 +63,18 @@ if __name__ == '__main__':
      label2.pack(align=bwx.RIGHT)
      label3 = bwx.LabelWidget(frame, text="this is the third one")
      label3.pack(align=bwx.CENTER)
-     page = Page(root=frame, title="My first app", footer="This is a footer", header="This is a header")
+     page = boa.Page(root=frame, title="My first app", footer="This is a footer", header="This is a header")
      # page.require(js.require)
      # page.require(js.quill)
      page.add_stylesheet(url="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
      page.add_script(url="https://code.jquery.com/jquery-3.2.1.slim.min.js")
      page.build()
      page.save("templates/index.html")
-     boa = BoaCage(__name__, port=5000, scale=1, rotation=0, title="boa: Hello World")
-     boa.run()
-     page.attach(boa)
+     Boa = boa.BoaCage(__name__, port=5000, scale=1, rotation=0, title="boa: Hello World")
+     Boa.run()
+     page.attach(Boa)
+     perf_tracker = stats.PerformanceTracker()
+     perf_tracker.start()
      # boa.setZoomFactor(scale=5)
      # boa.alert("wow wow")
      # label_inside_button = bwx.LabelWidget(button, text="innerHTML inside button div")

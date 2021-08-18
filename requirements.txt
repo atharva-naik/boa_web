@@ -3,6 +3,7 @@ tqdm
 emoji
 flask
 jinja2
+gputil
 psutil
 requests
 ansicolors
