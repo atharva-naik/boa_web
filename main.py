@@ -26,7 +26,6 @@ class CustomProgressbar(bwx.ProgressbarWidget):
           import time, colors
           self.update(step)
           # print(colors.color(f"tick: {time.time()}", fg="yellow"))
-
 class CustomImage(bwx.BImage):
      def __init__(self, source, parent=None, **kwargs):
           super(CustomImage, self).__init__(source=source, parent=parent, **kwargs)
@@ -48,8 +47,12 @@ if __name__ == '__main__':
      frame = bwx.LabelWidget(text="")
      label1 = bwx.LabelWidget(frame, text="this rich text editor is the courtesy of quill.js")
      label1.pack(align=bwx.LEFT)
+     
      rte = bwx.RichTextWidget(frame, placeholder="I love boa web", static=True)
      rte.pack()
+     textEdit = bwx.TextEditWidget(frame, linenumbers=True, static=True)
+     textEdit.pack()
+
      pbar = CustomProgressbar(20, 100, frame) # start with 20 on a progress bar that goes up to 100.
      pbar.pack()
      pbar.after(pbar.tick, T=0.1, step=2) # every 10 ms update progressbar by 2%
@@ -64,25 +67,25 @@ if __name__ == '__main__':
      img.pack(align=bwx.CENTER)
 
      label2 = bwx.LabelWidget(frame, text="this is the second one")
-     label2.pack(align=bwx.RIGHT)
+     # label2.pack(align=bwx.RIGHT)
      label3 = bwx.LabelWidget(frame, text="this is the third one")
-     label3.pack(align=bwx.CENTER)
+     # label3.pack(align=bwx.CENTER)
      
-     page = boa.Page(root=frame, title="My first app", footer="This is a footer", header="This is a header")
-     page.add_stylesheet(url="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
-     page.add_script(url="https://code.jquery.com/jquery-3.2.1.slim.min.js")
+     page = boa.Page(root=frame, title="My first app", footer="This is a footer", header="")
+     page.style(css.StyleBuilder(static="./static", download=True, force_download=False))
+     # page.add_stylesheet(url="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
+     # page.add_script(url="https://code.jquery.com/jquery-3.2.1.slim.min.js")
      page.build()
      page.save("templates/index.html")
      
      cage = boa.BoaCage(__name__, port=5000, scale=1, rotation=0, title="boa: Hello World")
      cage.run()
-     page.attach(cage)
-     
+     page.attach(cage, js.Plugins)
+     # print(rte.quill)
      windowId = cage.browser.GetWindowHandle()
-     print(colors.color(windowId, fg="blue", style="bold"))
+     # print(colors.color(windowId, fg="blue", style="bold"))
      perf_tracker = stats.PerformanceTracker()
      perf_tracker.start()
+     textEdit.setAttr("width", "30px")
      # boa.setZoomFactor(scale=5)
      # boa.alert("wow wow")
-     # label_inside_button = bwx.LabelWidget(button, text="innerHTML inside button div")
-     # label_inside_button.pack()

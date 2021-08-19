@@ -3,12 +3,11 @@
 import bs4 
 try: from _utils import *
 except ImportError: from ._utils import *
-
-Widget2Tag = {"Label":"p", 
-              "Button":"button",
-              "Video":"video",
-              "Image":"img",
-              "Bar":"progress"}
+# Widget2Tag = {"Label":"p", 
+#               "Button":"button",
+#               "Video":"video",
+#               "Image":"img",
+#               "Bar":"progress"}
 LEFT = "left"
 CENTER = "center"
 RIGHT = "right"
@@ -19,16 +18,16 @@ DEFAULT_TOOLBAR = [[{'header': [1, 2, 3, 4, 5, 6, False]}],
                    ['image', 'link'],
                    [{'color': []}, {'background': []}, {'font': []}, {'align': []}]]
 
+
 class Widget:
-    def __init__(self, parent=None, text="", requires=[], **attrs):
+    def __init__(self, parent=None, text="", **attrs):
         self._secret = rand_str()
         self.innerText = "" # innerText attribute of Node/Widget
         self.innerHTML = "" # innerHtml attribute of Node/Widget (including html of child)
-        self.type = ""
         self.text = text
         self.cage = None
-        self.requires = requires # list of JS libraries required
-        self.tag = Widget2Tag.get(self.type, "span")
+        self.requires = [] # list of JS libraries required
+        self.tag = "div" # Widget2Tag.get(self.type, "span")
         self.soup = bs4.BeautifulSoup(self.innerHTML, features="html.parser")
         for attr,value in attrs.items():
             setattr(self, attr, value) # each attrinute of tag is attribute of the object now.
@@ -67,6 +66,12 @@ class Widget:
         self.cage = cage
         for child in self.children: child.encage(cage)
 
+    def load_plugins(self, plugins):
+        for child in self.children: 
+            child.load_plugins(plugins)
+        for dep in self.requires: 
+            setattr(self, dep, plugins.get(dep))
+
     def setAttr(self, attr, value):
         jscode = f'''element = document.getElementById("{self._secret}");\n'''
         jscode += f'''element.setAttribute("{attr.replace('-','_')}", "{value}");\n'''
@@ -82,9 +87,9 @@ class Widget:
         if self.cage: self.cage.execJS(jscode)
 
     def _compile(self, **attrs):
-        attr_str = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()]) 
+        attrs = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()]) 
         return f'''
-<{self.tag} {attr_str}>
+<{self.tag} id="{self._secret}" {attrs}>
     {self.text}
     {self.innerHTML}
 </{self.tag}>
@@ -106,8 +111,7 @@ class Widget:
         self.innerHTML = str(self.soup)
         self.innerText = self.soup.text
         attrs = self.attrs
-        attrs["id"] = self._secret
-
+        # attrs["id"] = self._secret
         return self._compile(**attrs)
 
     def pack(self, **kwargs):
@@ -129,7 +133,6 @@ class Widget:
         self.innerText = text
         self.soup = bs4.BeautifulSoup(self.innerHTML, features="html.parser")
         # self.innerHTML = str(self.soup)
-
     def bind(self, event, callback):
         # print(event, callback)
         callback_name = f"{event}_{self._secret}"
@@ -165,11 +168,12 @@ class BImage(Widget):
     '''
     def __init__(self, source, parent=None, **attrs):
         '''source url of the image is needed'''
+        super(BImage, self).__init__(paent=parent, **attrs)
         self.cage = None
         self.type = "Image"
         self._secret = rand_str()
         self.source = self.loadStatic(source)
-        self.tag = Widget2Tag.get(self.type, "span")
+        self.tag = "img" # Widget2Tag.get(self.type, "span")
         for attr,value in attrs.items():
             setattr(self, attr, value) # each attrinute of tag is attribute of the object now.
         self.attrs = attrs # dictionary of attributes.
@@ -226,20 +230,18 @@ class BAudio(Widget):
 class LabelWidget(Widget):
     def __init__(self, parent=None, **attrs):
         super(LabelWidget, self).__init__(parent, **attrs)
-        self.type = "Label"
-        self.tag = Widget2Tag.get(self.type, "span")
+        self.tag = "p" # Widget2Tag.get(self.type, "span")
 
 
 class ButtonWidget(Widget):
     def __init__(self, parent=None, **attrs):
         super(ButtonWidget, self).__init__(parent, **attrs)
-        self.type = "Button"
-        self.tag = Widget2Tag.get(self.type, "span")
+        self.tag = "button" # Widget2Tag.get(self.type, "span")
 
     def _compile(self, **attrs):
         attr_str = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()]) 
         return f'''
-<{self.tag} {attr_str}>
+<{self.tag} id={self._secret} {attr_str}>
     {self.text}
 </{self.tag}>
 {self.innerHTML}'''
@@ -248,11 +250,10 @@ class ButtonWidget(Widget):
 class VideoWidget(Widget):
     def __init__(self, source, parent=None, controls=True, **attrs):
         super(VideoWidget, self).__init__(parent, **attrs)
-        self.type = "Video"
         self.controls = controls
         self.source = self.loadStatic(source)
         self.fromat = "mp4"
-        self.tag = Widget2Tag.get(self.type, "span")
+        self.tag = "video" # Widget2Tag.get(self.type, "span")
 
     def _compile(self, **attrs):
         attr_str = " ".join([f"{attr}={value}" for attr,value in self.attrs.items()])
@@ -284,9 +285,8 @@ class VideoWidget(Widget):
 class ProgressbarWidget(Widget):
     def __init__(self, start=0, total=100, parent=None, **attrs):
         super(ProgressbarWidget, self).__init__(parent, **attrs)
-        self.type = "Bar"
         self.total = total
-        self.tag = Widget2Tag.get(self.type, "span")
+        self.tag = "progress" # Widget2Tag.get(self.type, "span")
         self.current_progress = start
 
     def update(self, step=1):
@@ -305,25 +305,24 @@ class ProgressbarWidget(Widget):
 
 class RichTextWidget(Widget):
     def __init__(self, parent=None, static=False, **attrs):
-        super(RichTextWidget, self).__init__(parent, 
-                                             requires=['quill'],
-                                             **attrs)
-        self.type = "Bar"
+        super(RichTextWidget, self).__init__(parent, **attrs)
+        self.requires = ["quill"]
         self.toolbar = attrs.get("toolbar", DEFAULT_TOOLBAR)
         self.placeholder = attrs.get("placeholder", "Your text here.")
-        self.tag = Widget2Tag.get(self.type, "span")
         self.static = static # rely on the built page to include all necessary js
         self._secret = f"editor_{self._secret}"
 
     def _compile(self, **attrs):
         if self.static:        
-            include = '''<script src="{{ url_for('static', filename='quill.js')}}"></script>''' 
+            style = '''<link href="{{ url_for('static', filename='quill.snow.css') }}" rel="stylesheet">''' 
+            script = '''<script src="{{ url_for('static', filename='quill.js')}}"></script>''' 
         else: 
-            include = '<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>'
+            style = '<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">' 
+            script = '<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>'
         return f'''
-<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+{style}
 <div id="{self._secret}"></div>
-        {include}
+        {script}
         <script>
             var quill = new Quill('#{self._secret}', '''+"""{
                 placeholder: '"""+self.placeholder+"""',
@@ -335,6 +334,107 @@ class RichTextWidget(Widget):
 </script> 
 '''
 
+
+class TextEditWidget(Widget):
+    def __init__(self, parent=None, linenumbers=False, lang='python', theme='abbott', placeholder="import os\nx=1\nx+=1\n", static=True, **attrs):
+        super(TextEditWidget, self).__init__(parent=parent, **attrs)
+        self.tag = "textarea"
+        self.lang = lang
+        self.theme = theme
+        self.static = static
+        self.requires = ["codemirror"]
+        self.placeholder = placeholder
+        self.linenumbers = linenumbers
+
+    def _compile(self, **attrs):
+        attrs = " ".join([f"{attr}='{value}'" for attr,value in self.attrs.items()]) 
+        # print(attrs)
+        linenumbers = 'true' if self.linenumbers else "false"
+        self._secret = "code"
+        if not self.static:
+            script='''
+<script language="javascript" type="text/javascript" src="https://codemirror.net/lib/codemirror.js"></script>
+<script language="javascript" type="text/javascript" src="https://codemirror.net/mode/python/python.js"></script>            
+'''
+        else:
+            script = '''
+<script language="javascript" type="text/javascript" src="{{ url_for('static', filename='codemirror.js') }}"></script>
+<script language="javascript" type="text/javascript" src="{{ url_for('static', filename='python.js') }}"></script>
+'''
+        return f'''
+{script}
+<div {attrs}>
+<{self.tag} id="{self._secret}">
+{self.placeholder}</{self.tag}>
+</div>
+<script>'''+'''
+var editor = '''+f'''CodeMirror.fromTextArea(document.getElementById('{self._secret}')'''+''', {
+    '''+f'''lineNumbers: {linenumbers},
+    mode: 'text/x-{self.lang}',
+    theme: '{self.theme}','''+'''
+});
+</script>
+'''
+class CommentWidget(Widget):
+    def __init__(self, comment_manager, parent=None, static=False, **attrs):
+        super(CommentWidget, self).__init__(parent=parent, **attrs)
+        self.children.append(RichTextWidget(parent=parent, static=static, **attrs))
+        self.comment_manager = comment_manager
+
+    def _compile(self, **attrs):
+        attrs = " ".join([f"{attr}='{value}'" for attr,value in self.attrs.items()])
+        comment_log = self.comment_manager.commentLog()
+        return f'''
+{self.innerHTML}
+{comment_log}
+'''
+
+class Action(Widget):
+    def __init__(self, text="home", active=False, icon=None, **attrs):
+        self.tag = "a"
+        self.text = text
+        self.icon = icon
+        self.active = False
+
+    def bind(self, event, callback):
+        pass
+
+    def __str__(self):
+        active = 'class="active"' if self.active else ""
+        return f'''<a {active} href="#">{self.text}</a>'''
+
+class NavbarWidget(Widget):
+    def __init__(self, parent=None, actions=[], **attrs):
+        '''Assuming that a list of Action objects is passed'''
+        super(NavbarWidget, self).__init__(parent=parent, **attrs)
+        
+        self.actions = actions
+        for action in self.actions:
+            self.bind("click", self.defaultAction)
+
+    def _compile(self):
+        actions = "\n".join([str(action) for action in self.actions])
+        return f'''
+<ul class="topnav">
+{actions}
+</ul>    
+'''
+
+    def defaultAction(self):
+        pass
+
+    def editAction(self, text, action):
+        i = -1 # selected action id.
+        for action in self.actions:
+            if action.text == text: 
+                sel = action
+                break
+        sel
+
+
+    def addAction(self, action):
+        '''Add new action'''
+        self.actions.append(action)
 
 if __name__ == "__main__":
     LabelWidget(text="This is a label")

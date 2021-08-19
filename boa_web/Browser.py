@@ -38,20 +38,22 @@ class Page:
         self.template = jinja2.Template(HTMLBoilerPlate)
         self.args = args
         self.root = root
+        self.style_builder = None
         self.css_sources = []
         self.script_sources = []
         self.html = self.template
         os.makedirs("static", exist_ok=True)
         os.makedirs("templates", exist_ok=True)
 
-    def add_stylesheet(self, path=None, url=None):
-        import os
-        if path:
-            static_url = "{{ "+f"url_for('static', '{path}')"+" }}"
-            self.css_sources.append(f'''<link rel="stylesheet" href="{static_url}">''')
-        else:
-            if url: self.css_sources.append(f'''<link rel="stylesheet" href="{url}">''')
-
+    def add_stylesheet(self, url):
+        if self.style_builder: 
+            self.style_builder.add_stylesheet(url)
+        # import os
+        # if path:
+        #     static_url = "{{ "+f"url_for('static', filename='{path}')"+" }}"
+        #     self.css_sources.append(f'''<link rel="stylesheet" href="{static_url}">''')
+        # else:
+        #     if url: self.css_sources.append(f'''<link rel="stylesheet" href="{url}">''')
     def add_script(self, path=None, url=None):
         import os
         if path:
@@ -60,9 +62,16 @@ class Page:
         else:
             if url: self.script_sources.append(f'''<script src="{url}"></script>''')
 
+    def style(self, style_builder):
+        self.style_builder = style_builder
+
     def build(self):
+        import colors
         body = str(self.root)
-        css_sources = "\n".join(self.css_sources)
+        if self.style_builder:
+            # print(colors.color(self.style_builder.includes, fg="yellow"))
+            css_sources = "\n".join(self.style_builder.includes)
+        # print(css_sources)
         script_sources = "\n".join(self.script_sources)
         requirements = self.root._get_requires()
         print(requirements)
@@ -81,9 +90,10 @@ class Page:
     #         for _,file in plugin.file_map.items(): 
     #             if not file.endswith(".min.js"): 
     #                 self.add_script(path=pathlib.Path(file).name)
-    def attach(self, cage):
+    def attach(self, cage, plugins):
         import os, colors 
         self.root.encage(cage)
+        self.root.load_plugins(plugins)
         for binding in self.root._get_bindings():
             # print("—"*os.get_terminal_size().columns)
             # print(binding)
@@ -165,15 +175,13 @@ class BoaCage:
     def _close(self):
         self.force_close
         self.browser.CloseBrowser(force_close=True)
-
-    def _wait_for_browser(self, verbose=False):
-        import colors
-        while True:
-            try: 
-                self.browser
-                if verbose: print(colors.color("waiting for browser init", fg="yellow", style="bold")); break
-            except: pass
-
+    # def _wait_for_browser(self, verbose=False):
+    #     import colors
+    #     while True:
+    #         try: 
+    #             self.browser
+    #             if verbose: print(colors.color("waiting for browser init", fg="yellow", style="bold")); break
+    #         except: pass
     def setZoomFactor(self, scale=1):
         '''Set the zoom in the browser window.'''
         self.scale = scale
@@ -254,8 +262,7 @@ class TestBrowser:
 
 
 if __name__ == '__main__':
-    import time
-    import colors
+    import time, colors
     browser = BoaCage(port=5000)
     browser.run()
     print(colors.color("app launched succesfully", fg="green", style="bold"))

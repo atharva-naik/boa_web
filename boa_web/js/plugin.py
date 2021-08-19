@@ -37,9 +37,10 @@ class JSPlugin:
     #     return includes
     def __str__(self):
         includes = ""
+        urls = self.cdn_min_urls if len(self.cdn_min_urls) > len(self.cdn_urls) else self.cdn_urls
         for url in self.cdn_min_urls:
             if self.use_cdn: 
-                includes += f'''<script src="{self.cdn_min_url}"></script>\n'''    
+                includes += f'''<script src="{url}"></script>\n'''    
             else:
                 static_url = "{{ "+f"url_for('static', '{self.name}')"+" }}"
                 includes += f'''<script src="{static_url}"></script>\n'''
